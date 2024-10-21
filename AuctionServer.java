@@ -1,5 +1,4 @@
 import java.io.FileInputStream;
-import java.io.ObjectInputStream;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -9,6 +8,7 @@ import java.util.HashMap;
 import javax.crypto.Cipher;
 import javax.crypto.SealedObject;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class AuctionServer implements Auction {
 
@@ -28,10 +28,10 @@ public class AuctionServer implements Auction {
 
         try{
             FileInputStream fileIn = new FileInputStream("keys/testKey.aes");   //opening the file
-            ObjectInputStream objIn = new ObjectInputStream(fileIn);
         
-            SecretKey key = (SecretKey) objIn.readObject();     //reading the key from the file
-            objIn.close();
+            byte[] keyInBytes = fileIn.readAllBytes();
+            SecretKey key = new SecretKeySpec(keyInBytes, "AES");  //read and rebuild the key
+            fileIn.close();
 
             Cipher cipher = Cipher.getInstance("AES");      //generating the cipher  
             cipher.init(Cipher.ENCRYPT_MODE, key);

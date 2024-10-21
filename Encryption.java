@@ -1,5 +1,4 @@
 import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
 import java.security.NoSuchAlgorithmException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -17,10 +16,10 @@ public class Encryption {
         
         SecretKey key = keyGen("AES", 128);
         
-        FileOutputStream fout = new FileOutputStream("keys/testKey.aes"); //Save the key to a file
-        ObjectOutputStream oout = new ObjectOutputStream(fout);
-        oout.writeObject(key);
-        oout.close();
+        FileOutputStream fileOut = new FileOutputStream("keys/testKey.aes"); //Save the key to a file
+        byte[] keyInBytes = key.getEncoded();
+        fileOut.write(keyInBytes);
+        fileOut.close();
 
     }
 

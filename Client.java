@@ -1,11 +1,10 @@
 import java.io.FileInputStream;
-import java.io.ObjectInputStream;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-
 import javax.crypto.Cipher;
 import javax.crypto.SealedObject;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Client{
      public static void main(String[] args) {
@@ -24,9 +23,11 @@ public class Client{
         SealedObject sealedItem = server.getSpec(n);  //call the server function "getSpec()"
 
         FileInputStream fileIn = new FileInputStream("keys/testKey.aes");   //open the file containing the key
-        ObjectInputStream objIn = new ObjectInputStream(fileIn);
-        SecretKey key = (SecretKey) objIn.readObject();   //read the key
-        objIn.close();
+        
+        byte[] keyInBytes = fileIn.readAllBytes();        
+        fileIn.close();
+
+        SecretKey key = new SecretKeySpec(keyInBytes, "AES");
 
         Cipher cipher = Cipher.getInstance("AES");  //initialise the cipher to decrypt
         cipher.init(Cipher.DECRYPT_MODE, key);
