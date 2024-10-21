@@ -11,6 +11,8 @@ public class AuctionItem implements java.io.Serializable {
         this.highestBid = highestBid;
     }
 
+    //Getters:
+
     public int getItemID() {
         return itemID;
     }
