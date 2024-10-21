@@ -23,7 +23,7 @@ public class Client{
 
         SealedObject sealedItem = server.getSpec(n);  //call the server function "getSpec()"
 
-        FileInputStream fileIn = new FileInputStream("keys/testkey.aes");   //open the file containing the key
+        FileInputStream fileIn = new FileInputStream("keys/testKey.aes");   //open the file containing the key
         ObjectInputStream objIn = new ObjectInputStream(fileIn);
         SecretKey key = (SecretKey) objIn.readObject();   //read the key
         objIn.close();

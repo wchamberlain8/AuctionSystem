@@ -17,7 +17,7 @@ public class Encryption {
         
         SecretKey key = keyGen("AES", 128);
         
-        FileOutputStream fout = new FileOutputStream("keys/testkey.aes"); //Save the key to a file
+        FileOutputStream fout = new FileOutputStream("keys/testKey.aes"); //Save the key to a file
         ObjectOutputStream oout = new ObjectOutputStream(fout);
         oout.writeObject(key);
         oout.close();

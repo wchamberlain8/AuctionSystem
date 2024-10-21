@@ -27,7 +27,7 @@ public class AuctionServer implements Auction {
         AuctionItem item = items.get(itemID); //Get the AuctionItem from the hashmap with the relative itemID
 
         try{
-            FileInputStream fileIn = new FileInputStream("keys/testkey.aes");   //opening the file
+            FileInputStream fileIn = new FileInputStream("keys/testKey.aes");   //opening the file
             ObjectInputStream objIn = new ObjectInputStream(fileIn);
         
             SecretKey key = (SecretKey) objIn.readObject();     //reading the key from the file
