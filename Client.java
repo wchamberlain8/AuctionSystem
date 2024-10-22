@@ -35,9 +35,9 @@ public class Client{
         AuctionItem item = (AuctionItem) sealedItem.getObject(cipher); //decrypt the SealedObject into AuctionItem
 
         System.out.println("Item ID: " + n);      //printing out the AuctionItem's details
-        System.out.println("Name: " + item.getName());
-        System.out.println("Description: " + item.getDescription());
-        System.out.println("Highest Bid: " + item.getHighestBid());
+        System.out.println("Name: " + item.name);
+        System.out.println("Description: " + item.description);
+        System.out.println("Highest Bid: " + item.highestBid);
       }
       
       catch(Exception e){

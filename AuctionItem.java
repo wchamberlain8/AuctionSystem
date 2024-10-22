@@ -10,25 +10,6 @@ public class AuctionItem implements java.io.Serializable {
         this.description = description;
         this.highestBid = highestBid;
     }
-
-    //Getters:
-
-    public int getItemID() {
-        return itemID;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public int getHighestBid() {
-        return highestBid;
-    }
-
  }
     
 
