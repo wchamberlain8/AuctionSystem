@@ -17,11 +17,26 @@ public class AuctionServer implements Auction {
     public AuctionServer() throws RemoteException{
         super();
         items = new HashMap<>();
-        items.put(1, new AuctionItem(1, "Car", "Barely works but looks good!", 1000)); //Adding in hardcoded values to the list of items
-        items.put(2, new AuctionItem(2, "PC", "Mid-spec PC for sale, very dusty", 500));
-        items.put(3, new AuctionItem(3, "Robot", "Actually R2-D2", 5000));  
+
+        AuctionItem item1 = createItem(1, "Car", "Barely works", 1000);
+        AuctionItem item2 = createItem(2, "PC", "Mid spec, very dusty", 500);
+        items.put(item1.itemID, item1);
+        items.put(item2.itemID, item2);
+
     }
 
+    //Helper function to create a new AuctionItem since constructor not allowed
+    public AuctionItem createItem(int itemID, String name, String description, int highestBid){
+        AuctionItem item = new AuctionItem();
+        item.itemID = itemID;
+        item.name = name;
+        item.description = description;
+        item.highestBid = highestBid;
+
+        return item;
+    }
+
+    //Function that generates a key using the @KeyGenerator class
     private static SecretKey keyGen(String algorithm, int keySize) throws NoSuchAlgorithmException{
 
         KeyGenerator keyGenerator = KeyGenerator.getInstance(algorithm);
@@ -30,15 +45,14 @@ public class AuctionServer implements Auction {
 
     }
 
+    //Function that saves a SecretKey in a binary byte array
     private static void saveKeyInBytes(SecretKey key) throws Exception{
 
         FileOutputStream fileOut = new FileOutputStream("keys/testKey.aes"); //Save the key to a file
         byte[] keyInBytes = key.getEncoded();
         fileOut.write(keyInBytes);
         fileOut.close();
-
     }
-
 
     @Override
     public SealedObject getSpec(int itemID) throws RemoteException {
@@ -50,13 +64,7 @@ public class AuctionServer implements Auction {
         AuctionItem item = items.get(itemID); //Get the AuctionItem from the hashmap with the relative itemID
 
         try{
-            // FileInputStream fileIn = new FileInputStream("keys/testKey.aes");   //opening the file
-        
-            // byte[] keyInBytes = fileIn.readAllBytes();
-            // SecretKey key = new SecretKeySpec(keyInBytes, "AES");  //read and rebuild the key
-            // fileIn.close();
-
-            SecretKey key = keyGen("AES", 128);
+            SecretKey key = keyGen("AES", 128); //genereate the key and save it to the keys folder as bytes
             saveKeyInBytes(key);
 
             Cipher cipher = Cipher.getInstance("AES");      //generating the cipher  
@@ -70,7 +78,6 @@ public class AuctionServer implements Auction {
         }
     }
         
-
     public static void main(String[] args) {
         try {
             AuctionServer a1 = new AuctionServer(); //creating a server with the name 'Auction'
