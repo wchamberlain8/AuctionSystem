@@ -3,4 +3,4 @@
     String name;
     String description;
     int highestBid;
-    }
+    } 

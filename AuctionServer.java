@@ -40,24 +40,6 @@ public class AuctionServer implements Auction {
         return item;
     }
 
-    //Function that generates a key using the @KeyGenerator class
-    private static SecretKey keyGen(String algorithm, int keySize) throws NoSuchAlgorithmException{
-
-        KeyGenerator keyGenerator = KeyGenerator.getInstance(algorithm);
-        keyGenerator.init(keySize);
-        return keyGenerator.generateKey();
-
-    }
-
-    //Function that saves a SecretKey in a binary byte array
-    private static void saveKeyInBytes(SecretKey key) throws Exception{
-
-        FileOutputStream fileOut = new FileOutputStream("keys/testKey.aes"); //Save the key to a file
-        byte[] keyInBytes = key.getEncoded();
-        fileOut.write(keyInBytes);
-        fileOut.close();
-    }
-
     @Override
     public AuctionItem getSpec(int itemID) throws RemoteException {
 
@@ -67,22 +49,7 @@ public class AuctionServer implements Auction {
 
         AuctionItem item = itemsMap.get(itemID); //Get the AuctionItem from the hashmap with the relative itemID
         return item;
-
-        // the below code is from the Coursework 1 where AES encryption was used
-
-        // try{
-        //     SecretKey key = keyGen("AES", 128); //genereate the key and save it to the keys folder as bytes
-        //     saveKeyInBytes(key);
-
-        //     Cipher cipher = Cipher.getInstance("AES");      //generating the cipher  
-        //     cipher.init(Cipher.ENCRYPT_MODE, key);
-            
-        //     SealedObject sealedItem = new SealedObject(item, cipher);    //encrypting the item into a SealedObject
-        //     return sealedItem;
-        // }
-        // catch(Exception e){
-        //     throw new RemoteException();
-        // }
+       
     }
 
     // task 2 methods below!
@@ -98,6 +65,7 @@ public class AuctionServer implements Auction {
     public int newAuction(int userID, AuctionSaleItem item) throws RemoteException{
         //need to create a AuctionSaleItem through a helper function? -> can't be done here 
         //though because we're passing a AuctionSaleItem into this current method
+
 
 
 
