@@ -12,16 +12,20 @@ import javax.crypto.SecretKey;
 
 public class AuctionServer implements Auction {
 
-    private HashMap<Integer, AuctionItem> items;
+    private HashMap<Integer, AuctionItem> itemsMap;
+    private HashMap<Integer, String> usersMap;
+    private int userIDCount = 100;
+    private int auctionIDCount = 1000;
 
     public AuctionServer() throws RemoteException{
         super();
-        items = new HashMap<>();
+        itemsMap = new HashMap<>();
+        usersMap = new HashMap<>();
 
         AuctionItem item1 = createItem(1, "Car", "Barely works", 1000);
         AuctionItem item2 = createItem(2, "PC", "Mid spec, very dusty", 500);
-        items.put(item1.itemID, item1);
-        items.put(item2.itemID, item2);
+        itemsMap.put(item1.itemID, item1);
+        itemsMap.put(item2.itemID, item2);
 
     }
 
@@ -55,28 +59,68 @@ public class AuctionServer implements Auction {
     }
 
     @Override
-    public SealedObject getSpec(int itemID) throws RemoteException {
+    public AuctionItem getSpec(int itemID) throws RemoteException {
 
-        if(items.isEmpty()){    //return null if the hashmap is empty
+        if(itemsMap.isEmpty()){    //return null if the hashmap is empty
             return null;
         }
 
-        AuctionItem item = items.get(itemID); //Get the AuctionItem from the hashmap with the relative itemID
+        AuctionItem item = itemsMap.get(itemID); //Get the AuctionItem from the hashmap with the relative itemID
+        return item;
 
-        try{
-            SecretKey key = keyGen("AES", 128); //genereate the key and save it to the keys folder as bytes
-            saveKeyInBytes(key);
+        // the below code is from the Coursework 1 where AES encryption was used
 
-            Cipher cipher = Cipher.getInstance("AES");      //generating the cipher  
-            cipher.init(Cipher.ENCRYPT_MODE, key);
+        // try{
+        //     SecretKey key = keyGen("AES", 128); //genereate the key and save it to the keys folder as bytes
+        //     saveKeyInBytes(key);
+
+        //     Cipher cipher = Cipher.getInstance("AES");      //generating the cipher  
+        //     cipher.init(Cipher.ENCRYPT_MODE, key);
             
-            SealedObject sealedItem = new SealedObject(item, cipher);    //encrypting the item into a SealedObject
-            return sealedItem;
-        }
-        catch(Exception e){
-            throw new RemoteException();
-        }
+        //     SealedObject sealedItem = new SealedObject(item, cipher);    //encrypting the item into a SealedObject
+        //     return sealedItem;
+        // }
+        // catch(Exception e){
+        //     throw new RemoteException();
+        // }
     }
+
+    // task 2 methods below!
+
+    @Override
+    public int register(String email) throws RemoteException{
+        userIDCount++;
+        usersMap.put(userIDCount, email);
+        return userIDCount;
+    }
+
+    @Override
+    public int newAuction(int userID, AuctionSaleItem item) throws RemoteException{
+        //need to create a AuctionSaleItem through a helper function? -> can't be done here 
+        //though because we're passing a AuctionSaleItem into this current method
+
+
+
+    }
+
+    @Override
+    public AuctionItem[] listItems() throws RemoteException{
+
+    }
+
+    @Override
+    public AuctionResult closeAuction(int userID, int itemID){
+
+    }
+
+    @Override
+    public boolean bid(int userID, int itemID, int price) throws RemoteException{
+
+    }
+
+
+
+
         
     public static void main(String[] args) {
         try {

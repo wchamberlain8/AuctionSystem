@@ -20,19 +20,23 @@ public class Client{
         Registry registry = LocateRegistry.getRegistry("localhost");
         Auction server = (Auction) registry.lookup(name);   //find the server and connect
 
-        SealedObject sealedItem = server.getSpec(n);  //call the server function "getSpec()"
+        // the below code is from the Coursework 1 where AES encryption was used:
 
-        FileInputStream fileIn = new FileInputStream("keys/testKey.aes");   //open the file containing the key
+        // SealedObject sealedItem = server.getSpec(n);  //call the server function "getSpec()"
+
+        // FileInputStream fileIn = new FileInputStream("keys/testKey.aes");   //open the file containing the key
         
-        byte[] keyInBytes = fileIn.readAllBytes();        
-        fileIn.close();
+        // byte[] keyInBytes = fileIn.readAllBytes();        
+        // fileIn.close();
 
-        SecretKey key = new SecretKeySpec(keyInBytes, "AES");
+        // SecretKey key = new SecretKeySpec(keyInBytes, "AES");
 
-        Cipher cipher = Cipher.getInstance("AES");  //initialise the cipher to decrypt
-        cipher.init(Cipher.DECRYPT_MODE, key);
+        // Cipher cipher = Cipher.getInstance("AES");  //initialise the cipher to decrypt
+        // cipher.init(Cipher.DECRYPT_MODE, key);
 
-        AuctionItem item = (AuctionItem) sealedItem.getObject(cipher); //decrypt the SealedObject into AuctionItem
+        // AuctionItem item = (AuctionItem) sealedItem.getObject(cipher); //decrypt the SealedObject into AuctionItem
+
+        AuctionItem item = server.getSpec(n);
 
         System.out.println("Item ID: " + n);      //printing out the AuctionItem's details
         System.out.println("Name: " + item.name);
