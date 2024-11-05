@@ -14,6 +14,7 @@ public class AuctionServer implements Auction {
 
     private HashMap<Integer, AuctionItem> itemsMap;
     private HashMap<Integer, String> usersMap;
+    private HashMap<Integer, AuctionSaleItem> userAuctionsMap;
     private int userIDCount = 100;
     private int auctionIDCount = 1000;
 
@@ -63,21 +64,37 @@ public class AuctionServer implements Auction {
 
     @Override
     public int newAuction(int userID, AuctionSaleItem item) throws RemoteException{
-        //need to create a AuctionSaleItem through a helper function? -> can't be done here 
-        //though because we're passing a AuctionSaleItem into this current method
+        
+        auctionIDCount++;
+        userAuctionsMap.put(userID, item);
+        
+        //create new AuctionItem from AuctionSaleItem info
 
+        AuctionItem newItem = createItem(auctionIDCount, item.name, item.description, 0);
+        itemsMap.put(auctionIDCount, newItem);
 
-
+        return auctionIDCount;
 
     }
 
     @Override
     public AuctionItem[] listItems() throws RemoteException{
 
+        AuctionItem[] array = itemsMap.values().toArray(new AuctionItem[0]);
+        return array;
+
     }
 
     @Override
     public AuctionResult closeAuction(int userID, int itemID){
+
+        AuctionItem item = itemsMap.get(itemID);
+        if(item == null){
+            System.out.println("AuctionItem of that itemID does not exist");
+            return null;
+        }
+        
+
 
     }
 
