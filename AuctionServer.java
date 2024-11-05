@@ -12,22 +12,16 @@ import javax.crypto.SecretKey;
 
 public class AuctionServer implements Auction {
 
-    private HashMap<Integer, AuctionItem> itemsMap;
-    private HashMap<Integer, String> usersMap;
-    private HashMap<Integer, AuctionSaleItem> userAuctionsMap;
+    private HashMap<Integer, AuctionItem> itemsMap = new HashMap<>();
+    private HashMap<Integer, String> usersMap = new HashMap<>();
+    private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
+    private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
     private int userIDCount = 100;
     private int auctionIDCount = 1000;
 
     public AuctionServer() throws RemoteException{
         super();
-        itemsMap = new HashMap<>();
-        usersMap = new HashMap<>();
-
-        AuctionItem item1 = createItem(1, "Car", "Barely works", 1000);
-        AuctionItem item2 = createItem(2, "PC", "Mid spec, very dusty", 500);
-        itemsMap.put(item1.itemID, item1);
-        itemsMap.put(item2.itemID, item2);
-
+    
     }
 
     //Helper function to create a new AuctionItem since constructor not allowed
@@ -94,13 +88,51 @@ public class AuctionServer implements Auction {
             return null;
         }
         
+        if (userAuctionsMap.containsKey(userID) && item.itemID == itemID) {
 
+            AuctionSaleItem saleItem = userAuctionsMap.get(userID);
+
+            if(item.highestBid >= saleItem.reservePrice){
+                AuctionResult result = new AuctionResult();
+                int winningUserID = highestBidderMap.get(itemID);
+                result.winningEmail = usersMap.get(winningUserID);
+                result.winningPrice = item.highestBid;
+
+
+                itemsMap.remove(itemID);
+                return result;
+            }
+            else{
+                System.out.println("Reserve price not met");
+                return null;
+            }
+
+        } 
+        else{
+            System.out.println("UserID does not match the given AuctionItem's itemID");
+            return null;
+        }
 
     }
 
     @Override
     public boolean bid(int userID, int itemID, int price) throws RemoteException{
-
+            
+            AuctionItem item = itemsMap.get(itemID);
+            if(item == null){
+                System.out.println("AuctionItem of that itemID does not exist");
+                return false;
+            }
+    
+            if(price > item.highestBid){
+                item.highestBid = price;
+                highestBidderMap.put(userID, item.itemID);
+                return true;
+            }
+            else{
+                System.out.println("Bid is not higher than the current highest bid");
+                return false;
+            }
     }
 
 
