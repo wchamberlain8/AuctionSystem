@@ -5,6 +5,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.Random;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SealedObject;
@@ -16,8 +17,7 @@ public class AuctionServer implements Auction {
     private HashMap<Integer, String> usersMap = new HashMap<>();
     private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
     private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
-    private int userIDCount = 100;
-    private int auctionIDCount = 1000;
+    Random random = new Random();
 
     public AuctionServer() throws RemoteException{
         super();
@@ -51,23 +51,23 @@ public class AuctionServer implements Auction {
 
     @Override
     public int register(String email) throws RemoteException{
-        userIDCount++;
-        usersMap.put(userIDCount, email);
-        return userIDCount;
+        int userID = random.nextInt(100);
+        usersMap.put(userID, email);
+        return userID;
     }
 
     @Override
     public int newAuction(int userID, AuctionSaleItem item) throws RemoteException{
         
-        auctionIDCount++;
+        int auctionID = random.nextInt(1000);
         userAuctionsMap.put(userID, item);
         
         //create new AuctionItem from AuctionSaleItem info
 
-        AuctionItem newItem = createItem(auctionIDCount, item.name, item.description, 0);
-        itemsMap.put(auctionIDCount, newItem);
+        AuctionItem newItem = createItem(auctionID, item.name, item.description, 0);
+        itemsMap.put(auctionID, newItem);
 
-        return auctionIDCount;
+        return auctionID;
 
     }
 
@@ -93,13 +93,14 @@ public class AuctionServer implements Auction {
             AuctionSaleItem saleItem = userAuctionsMap.get(userID);
 
             if(item.highestBid >= saleItem.reservePrice){
+
                 AuctionResult result = new AuctionResult();
                 int winningUserID = highestBidderMap.get(itemID);
                 result.winningEmail = usersMap.get(winningUserID);
                 result.winningPrice = item.highestBid;
 
-
                 itemsMap.remove(itemID);
+
                 return result;
             }
             else{
@@ -126,7 +127,7 @@ public class AuctionServer implements Auction {
     
             if(price > item.highestBid){
                 item.highestBid = price;
-                highestBidderMap.put(userID, item.itemID);
+                highestBidderMap.put(item.itemID, userID);
                 return true;
             }
             else{

@@ -26,7 +26,7 @@ public class Client{
         System.out.println("Available commands: register, new, list, bid, close, getSpec");
         System.out.println("\nExample usage:");
         System.out.println("register: java Client register <email>");
-        System.out.println("new: java Client new <userID> <name> <description> <reservePrice>");
+        System.out.println("new: java Client new <userID> <name> \"<description>\" <reservePrice>");
         System.out.println("list: java Client list");
         System.out.println("bid: java Client bid <userID> <itemID> <bid>");
         System.out.println("close: java Client close <userID> <itemID>");
@@ -41,19 +41,22 @@ public class Client{
         switch (args[0]) {
           case "register":
             int userID = server.register(args[1]);
-            System.out.println("Successfully registered. Your userID is: " + userID + "you will need this to use system functions.");
+            System.out.println("Successfully registered. Your userID is: " + userID + " you will need this to use system functions.");
             break;
 
           case "new":
             AuctionSaleItem item = createSaleItem(args[2], args[3], Integer.parseInt(args[4]));
             int itemID = server.newAuction(Integer.parseInt(args[1]), item);
-            System.out.println("Successfully created new auction. Your itemID is: " + itemID + "you will need this to use system functions.");
+            System.out.println("Successfully created new auction. Your itemID is: " + itemID + " you will need this to use system functions.");
             break;
 
           case "list":
             AuctionItem[] auctionArray = server.listItems();
             for (AuctionItem auctionItem : auctionArray) {
-              System.out.println("ItemID: " + auctionItem.itemID + " Name: " + auctionItem.name + " Description: " + auctionItem.description + " Highest Bid: " + auctionItem.highestBid);
+              System.out.println("ItemID: " + auctionItem.itemID);
+              System.out.println("Name: " + auctionItem.name);
+              System.out.println("Description: " + auctionItem.description);
+              System.out.println("Highest Bid: " + auctionItem.highestBid);
             }
             break;
 
@@ -69,7 +72,17 @@ public class Client{
             break;
 
           case "close":
-            server.closeAuction(Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+            AuctionResult result = server.closeAuction(Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+            
+            if(result == null){
+              System.out.println("There was a problem, either the reserve price has not yet been met, that item does not exist or the given userID did not create the auction");
+            }
+            else{
+              System.out.println("The auction has been closed");
+              System.out.println("Winning email: " + result.winningEmail);
+              System.out.println("Winning bid: " + result.winningPrice);
+            }
+
             break;
 
           case "getSpec":
