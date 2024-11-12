@@ -9,16 +9,22 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.util.HashMap;
 import java.util.Random;
 
 public class AuctionServer implements Auction {
 
+    //Create and initialise hashmaps
     private HashMap<Integer, AuctionItem> itemsMap = new HashMap<>();
     private HashMap<Integer, String> usersMap = new HashMap<>();
     private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
     private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
+    private HashMap<Integer, PublicKey> userPKMap = new HashMap<>();
+    private HashMap<Integer, String> userTokenMap = new HashMap<>();
+
     Random random = new Random();
+    private static PrivateKey serverPrivateKey;
 
     public AuctionServer() throws RemoteException {
         super();
@@ -30,12 +36,14 @@ public class AuctionServer implements Auction {
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA"); // set up the key generator
             keyGen.initialize(2048);
+
             KeyPair keyPair = keyGen.generateKeyPair();
             PrivateKey serverPrivateKey = keyPair.getPrivate(); // generate and seperate the two keys
             PublicKey serverPublicKey = keyPair.getPublic();
 
-            FileOutputStream fileOut = new FileOutputStream("keys/server_public.key"); // save the public key (in bytes)
-                                                                                       // to a file
+            AuctionServer.serverPrivateKey = serverPrivateKey; //save private key securely to the server
+
+            FileOutputStream fileOut = new FileOutputStream("keys/server_public.key"); // save the public key (in bytes) to a file
             fileOut.write(serverPublicKey.getEncoded());
             fileOut.close();
 
@@ -45,14 +53,53 @@ public class AuctionServer implements Auction {
     }
 
     @Override
-    public ChallengeInfo challenge(int userID, String clientChallenge) throws RemoteException {
-        return null;
+    public ChallengeInfo challenge(int userID, String clientChallenge) {
+        try {
+            Signature signature = Signature.getInstance("SHA256withRSA"); //set up the signature
+            signature.initSign(serverPrivateKey);
+            signature.update(clientChallenge.getBytes());
+            byte[] response = signature.sign(); //sign the client's challenge
+
+            ChallengeInfo challengeInfo = new ChallengeInfo();
+            challengeInfo.response = response;
+            challengeInfo.serverChallenge = "serverChallenge"; //create a challenge for the client
+
+            return challengeInfo;
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        
     }
 
 
     @Override
     public TokenInfo authenticate(int userID, byte[] signature) throws RemoteException {
-        return null;
+        try {
+            PublicKey clientPublicKey = userPKMap.get(userID); //get the client's public key from the hashmap
+
+            Signature verifyClientSig = Signature.getInstance("SHA256withRSA"); //set up the signature to verify the client's response
+            verifyClientSig.initVerify(clientPublicKey);
+            verifyClientSig.update("serverChallenge".getBytes()); //update the signature with the server's challenge (which is just the string "serverChallenge")
+            
+            if (verifyClientSig.verify(signature) == false) { //verify the client's response
+                System.out.println("Client's response could not be verified");
+                return null;
+            }
+
+            TokenInfo tokenInfo = new TokenInfo(); //create a new token
+            tokenInfo.token = "token" + userID; 
+            tokenInfo.expiryTime = System.currentTimeMillis() + 10000; //set the expiry time to 10 seconds
+
+            return tokenInfo;
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     // Helper function to create a new AuctionItem since constructor not allowed
@@ -84,11 +131,9 @@ public class AuctionServer implements Auction {
     @Override
     public int register(String email, PublicKey pkey) throws RemoteException {
 
-        //TODO: ADD USERS PUBLIC KEY TO AN AUTHENTICATED USER HASHMAP HERE
-
         int userID = random.nextInt(100); // generate random userID
-        usersMap.put(userID, email); // place into hashmap, userID being the key for each email, incase we need a
-                                     // user's email
+        usersMap.put(userID, email); // place into hashmap, userID being the key for each email, to access a user's email
+        userPKMap.put(userID, pkey); // place into hashmap, userID being the key for each PublicKey, to access a user's PublicKey
         return userID;
     }
 
