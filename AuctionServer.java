@@ -1,4 +1,3 @@
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -6,7 +5,6 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -21,7 +19,7 @@ public class AuctionServer implements Auction {
     private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
     private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
     private HashMap<Integer, PublicKey> userPKMap = new HashMap<>();
-    private HashMap<Integer, String> userTokenMap = new HashMap<>();
+    private HashMap<Integer, TokenInfo> userTokenMap = new HashMap<>();
 
     Random random = new Random();
     private static PrivateKey serverPrivateKey;
@@ -91,10 +89,10 @@ public class AuctionServer implements Auction {
 
             TokenInfo tokenInfo = new TokenInfo(); //create a new token
             tokenInfo.token = "token" + userID; 
-            tokenInfo.expiryTime = System.currentTimeMillis() + 10000; //set the expiry time to 10 seconds
+            tokenInfo.expiryTime = System.currentTimeMillis() + 10000; //set the expiry time to 10 seconds (from current system time)
 
-            userTokenMap.put(userID, tokenInfo.token); //place the token in the hashmap, with the userID as the key
-                                                       //this will be overwrite the current token if the user authenticates again within 10 secs
+            userTokenMap.put(userID, tokenInfo); //place the token in the hashmap, with the userID as the key
+                                                 //this will be overwrite the current token if the user authenticates again within 10 secs
 
             return tokenInfo;
 
@@ -102,6 +100,30 @@ public class AuctionServer implements Auction {
         catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public boolean validateToken(int userID, String token) throws Exception {
+    
+        try {
+            TokenInfo tokenInfo = userTokenMap.get(userID); //get the token from the hashmap
+
+            if (tokenInfo == null) {    //check token exists
+                System.out.println("Token does not exist");
+                return false;
+            }
+
+            if (tokenInfo.token.equals(token) && tokenInfo.expiryTime > System.currentTimeMillis()) { //check if the token is valid
+                return true;
+            } else {
+                System.out.println("Token is invalid or expired");
+                return false;
+            }
+
+
+        }
+        catch (Exception e) {
+            return false;
         }
     }
 
@@ -119,8 +141,15 @@ public class AuctionServer implements Auction {
     @Override
     public AuctionItem getSpec(int userID, int itemID, String token ) throws RemoteException {
 
-        //TODO: CHECK TOKEN IS VALID HERE
-
+        try {
+            if(validateToken(userID, token) == false) { //check if the token is valid
+                System.out.println("Token is invalid or expired");
+                return null; //stop code if token is invalid
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
         if (itemsMap.isEmpty()) { // return null if the hashmap is empty
             return null;
@@ -143,7 +172,15 @@ public class AuctionServer implements Auction {
     @Override
     public int newAuction(int userID, AuctionSaleItem item, String token) throws RemoteException {
 
-        //TODO: CHECK TOKEN IS VALID HERE
+        try {
+            if(validateToken(userID, token) == false) { //check if the token is valid
+                System.out.println("Token is invalid or expired");
+                return -1; //stop code if token is invalid
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
         int itemID = random.nextInt(1000); // generate random itemID
         userAuctionsMap.put(userID, item); // place into hashmap, userID being the key for each AuctionSaleItem, to know
@@ -162,7 +199,15 @@ public class AuctionServer implements Auction {
     @Override
     public AuctionItem[] listItems(int userID, String token) throws RemoteException {
         
-        //TODO: CHECK TOKEN IS VALID HERE
+        try {
+            if(validateToken(userID, token) == false) { //check if the token is valid
+                System.out.println("Token is invalid or expired");
+                return null; //stop code if token is invalid
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
         AuctionItem[] array = itemsMap.values().toArray(new AuctionItem[0]); // turn the item hashmap into an array
         return array;
@@ -172,7 +217,15 @@ public class AuctionServer implements Auction {
     @Override
     public AuctionResult closeAuction(int userID, int itemID, String token) {
 
-        //TODO: CHECK TOKEN IS VALID HERE
+        try {
+            if(validateToken(userID, token) == false) { //check if the token is valid
+                System.out.println("Token is invalid or expired");
+                return null; //stop code if token is invalid
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
         AuctionItem item = itemsMap.get(itemID); // Check if the item exists
         if (item == null) {
@@ -211,7 +264,15 @@ public class AuctionServer implements Auction {
     @Override
     public boolean bid(int userID, int itemID, int price, String token) throws RemoteException {
 
-        //TODO: CHECK TOKEN IS VALID HERE
+        try {
+            if(validateToken(userID, token) == false) { //check if the token is valid
+                System.out.println("Token is invalid or expired");
+                return false; //stop code if token is invalid
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
         AuctionItem item = itemsMap.get(itemID); // Check that the item exists
         if (item == null) {
