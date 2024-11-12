@@ -93,6 +93,9 @@ public class AuctionServer implements Auction {
             tokenInfo.token = "token" + userID; 
             tokenInfo.expiryTime = System.currentTimeMillis() + 10000; //set the expiry time to 10 seconds
 
+            userTokenMap.put(userID, tokenInfo.token); //place the token in the hashmap, with the userID as the key
+                                                       //this will be overwrite the current token if the user authenticates again within 10 secs
+
             return tokenInfo;
 
         }
