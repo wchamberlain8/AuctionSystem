@@ -36,12 +36,9 @@ public class Client {
       keyGen.initialize(2048);
 
       KeyPair keyPair = keyGen.generateKeyPair(); // generate and split the key pair
-      PrivateKey clientPrivateKey = keyPair.getPrivate();
-      PublicKey clientPublicKey = keyPair.getPublic();
-
-      Client.clientPrivateKey = clientPrivateKey; // save the two keys to the client
-      Client.clientPublicKey = clientPublicKey;
-
+      clientPrivateKey = keyPair.getPrivate();
+      clientPublicKey = keyPair.getPublic();
+      
     }
     catch(Exception e){
       e.printStackTrace();
@@ -65,11 +62,9 @@ public class Client {
       }
   
       Signature clientSignature = Signature.getInstance("SHA256withRSA"); //set up signature to sign the server's challenge
-      clientSignature.initSign(clientPrivateKey);
+      clientSignature.initSign(Client.clientPrivateKey);
       clientSignature.update(challengeInfo.serverChallenge.getBytes());
       byte[] signedChallenge = clientSignature.sign(); //sign the server's challenge
-
-      System.out.println(Base64.getEncoder().encodeToString(signedChallenge));
   
       TokenInfo tokenInfo = server.authenticate(userID, signedChallenge);
       if (tokenInfo == null) {
@@ -82,6 +77,7 @@ public class Client {
     }
   
     public static void register(Auction server, String[] args) throws RemoteException {
+      generateKeyPair(); // generate a key pair for the client during registration
       int userID = server.register(args[1], clientPublicKey);
       System.out.println("Successfully registered. Your userID is: " + userID + " you will need this to use system functions.");
     }
@@ -169,8 +165,6 @@ public class Client {
       String name = "Auction";
       Registry registry = LocateRegistry.getRegistry("localhost");
       Auction server = (Auction) registry.lookup(name); // find the server and connect
-
-      generateKeyPair(); // generate a key pair for the client
 
       //build + save the server's public key to a variable
       byte[] keyInBytes = Files.readAllBytes(Paths.get("keys/server_public.key"));
