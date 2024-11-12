@@ -8,6 +8,7 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -77,11 +78,14 @@ public class AuctionServer implements Auction {
     public TokenInfo authenticate(int userID, byte[] signature) throws RemoteException {
         try {
             PublicKey clientPublicKey = userPKMap.get(userID); //get the client's public key from the hashmap
+            String serverChallenge = "serverChallenge";
 
             Signature verifyClientSig = Signature.getInstance("SHA256withRSA"); //set up the signature to verify the client's response
             verifyClientSig.initVerify(clientPublicKey);
-            verifyClientSig.update("serverChallenge".getBytes()); //update the signature with the server's challenge (which is just the string "serverChallenge")
-            
+            verifyClientSig.update(serverChallenge.getBytes()); //update the signature with the server's challenge (which is just the string "serverChallenge")
+
+            System.out.println(Base64.getEncoder().encodeToString(signature));
+
             if (verifyClientSig.verify(signature) == false) { //verify the client's response
                 System.out.println("Client's response could not be verified");
                 return null;

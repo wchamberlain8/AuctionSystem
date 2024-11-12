@@ -11,6 +11,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 public class Client {
 
@@ -50,7 +51,7 @@ public class Client {
   //Function that fully authenticates the client with the server, verifying the server's response, and returns a token for use
   private static String authenticateClient(int userID, Auction server) throws Exception {
       String clientChallenge = "clientChallenge" + userID;  //create client challenge
-      System.out.println("TESTING WHAT IS THE CLIENTCHALLENGE " + clientChallenge); //TODO: REMOVE THIS LINE
+
       ChallengeInfo challengeInfo = server.challenge(userID, clientChallenge); //call challenge server function
   
       byte[] response = challengeInfo.response;
@@ -67,6 +68,8 @@ public class Client {
       clientSignature.initSign(clientPrivateKey);
       clientSignature.update(challengeInfo.serverChallenge.getBytes());
       byte[] signedChallenge = clientSignature.sign(); //sign the server's challenge
+
+      System.out.println(Base64.getEncoder().encodeToString(signedChallenge));
   
       TokenInfo tokenInfo = server.authenticate(userID, signedChallenge);
       if (tokenInfo == null) {
@@ -170,7 +173,7 @@ public class Client {
       generateKeyPair(); // generate a key pair for the client
 
       //build + save the server's public key to a variable
-      byte[] keyInBytes = Files.readAllBytes(Paths.get("keys/serverPublicKey"));
+      byte[] keyInBytes = Files.readAllBytes(Paths.get("keys/server_public.key"));
       X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyInBytes);
       KeyFactory keyFactory = KeyFactory.getInstance("RSA");
       serverPublicKey = keyFactory.generatePublic(keySpec);
