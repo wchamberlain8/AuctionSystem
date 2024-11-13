@@ -12,6 +12,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.Scanner;
 
 public class Client {
 
@@ -36,9 +37,12 @@ public class Client {
       keyGen.initialize(2048);
 
       KeyPair keyPair = keyGen.generateKeyPair(); // generate and split the key pair
-      clientPrivateKey = keyPair.getPrivate();
-      clientPublicKey = keyPair.getPublic();
-      
+      PrivateKey clientPrivateKey = keyPair.getPrivate();
+      PublicKey clientPublicKey = keyPair.getPublic();
+
+      Client.clientPrivateKey = clientPrivateKey; // save the two keys to the client
+      Client.clientPublicKey = clientPublicKey;
+
     }
     catch(Exception e){
       e.printStackTrace();
@@ -65,6 +69,8 @@ public class Client {
       clientSignature.initSign(Client.clientPrivateKey);
       clientSignature.update(challengeInfo.serverChallenge.getBytes());
       byte[] signedChallenge = clientSignature.sign(); //sign the server's challenge
+
+      System.out.println(Base64.getEncoder().encodeToString(signedChallenge));
   
       TokenInfo tokenInfo = server.authenticate(userID, signedChallenge);
       if (tokenInfo == null) {
@@ -77,7 +83,9 @@ public class Client {
     }
   
     public static void register(Auction server, String[] args) throws RemoteException {
-      generateKeyPair(); // generate a key pair for the client during registration
+
+      generateKeyPair(); //generate the client's key pair on registration
+
       int userID = server.register(args[1], clientPublicKey);
       System.out.println("Successfully registered. Your userID is: " + userID + " you will need this to use system functions.");
     }
@@ -144,12 +152,7 @@ public class Client {
     System.out.println("Highest Bid: " + retrievedItem.highestBid);
   }
 
-  // ******************************************************************************************************************
-
-  // Main method to connect to the server and call functions via command line input
-  public static void main(String[] args) {
-
-    if (args.length < 1) {
+  public static void usage(){
       System.out.println("Usage: java Client <command> <args>");
       System.out.println("Available commands: register, new, list, bid, close, getSpec");
       System.out.println("\nExample usage:");
@@ -159,19 +162,11 @@ public class Client {
       System.out.println("bid: java Client bid <userID> <itemID> <bid>");
       System.out.println("close: java Client close <userID> <itemID>");
       System.out.println("getSpec: java Client getSpec <userID> <itemID>");
-    }
+  }
 
+  public static void processCommand(Auction server, String[] args){
+    
     try {
-      String name = "Auction";
-      Registry registry = LocateRegistry.getRegistry("localhost");
-      Auction server = (Auction) registry.lookup(name); // find the server and connect
-
-      //build + save the server's public key to a variable
-      byte[] keyInBytes = Files.readAllBytes(Paths.get("keys/server_public.key"));
-      X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyInBytes);
-      KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-      serverPublicKey = keyFactory.generatePublic(keySpec);
-
       switch (args[0]) {
         case "register":
           register(server, args);
@@ -196,9 +191,55 @@ public class Client {
         case "getSpec":
           getSpec(server, args);
           break;
+
         default:
           break;
       }
+    } 
+    catch (Exception e) {
+      e.printStackTrace();
+    }
+    
+  }
+
+  // ******************************************************************************************************************
+
+  // Main method to connect to the server and take in user input
+  public static void main(String[] args) {
+
+    //Connect to the server
+    try {
+      String name = "Auction";
+      Registry registry = LocateRegistry.getRegistry("localhost");
+      Auction server = (Auction) registry.lookup(name); // find the server and connect
+
+      //build + save the server's public key to a variable
+      byte[] keyInBytes = Files.readAllBytes(Paths.get("keys/server_public.key"));
+      X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyInBytes);
+      KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+      serverPublicKey = keyFactory.generatePublic(keySpec);
+
+      //loop to take in user input
+
+      Scanner input = new Scanner(System.in);
+      while(true){
+        System.out.println("Type 'usage' to see available commands");
+        System.out.println("Type 'exit' to exit the program");
+        System.out.println("Enter a command: ");
+        String userInput = input.nextLine();
+        String[] inputArgs = userInput.split(" ");
+
+        if(inputArgs[0].equals("exit")){
+          break;
+        }
+        else if(inputArgs[0].equals("usage")){
+          usage();
+        }
+        else{
+          processCommand(server, inputArgs);
+        }
+      }
+      input.close();
     }
 
     catch (Exception e) {
