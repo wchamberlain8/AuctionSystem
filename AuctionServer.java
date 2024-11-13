@@ -8,7 +8,6 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -118,6 +117,7 @@ public class AuctionServer implements Auction {
                 return true;
             } else {
                 System.out.println("Token is invalid or expired");
+                userTokenMap.remove(userID);
                 return false;
             }
 

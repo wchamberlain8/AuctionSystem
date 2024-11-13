@@ -11,7 +11,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 import java.util.Scanner;
 
 public class Client {
@@ -69,8 +68,6 @@ public class Client {
       clientSignature.initSign(Client.clientPrivateKey);
       clientSignature.update(challengeInfo.serverChallenge.getBytes());
       byte[] signedChallenge = clientSignature.sign(); //sign the server's challenge
-
-      System.out.println(Base64.getEncoder().encodeToString(signedChallenge));
   
       TokenInfo tokenInfo = server.authenticate(userID, signedChallenge);
       if (tokenInfo == null) {
@@ -96,6 +93,11 @@ public class Client {
       AuctionSaleItem item = createSaleItem(args[2], args[3], Integer.parseInt(args[4]));
       int itemID = server.newAuction(Integer.parseInt(args[1]), item, token);
 
+      if(itemID == -1){
+        System.out.println("Could not authenticate Client");
+        return;
+      }
+
       System.out.println("Successfully created new auction. Your itemID is: " + itemID + " you will need this to use system functions.");
   }
 
@@ -104,6 +106,10 @@ public class Client {
     String token = authenticateClient(Integer.parseInt(args[1]), server); //generate token
 
     AuctionItem[] auctionArray = server.listItems(Integer.parseInt(args[1]), token); //get the list of items
+
+    if(auctionArray == null){
+      System.out.println("Could not authenticate Client");
+    }
 
     for (AuctionItem auctionItem : auctionArray) {        //print out the items
       System.out.println("ItemID: " + auctionItem.itemID);
@@ -122,7 +128,7 @@ public class Client {
       System.out.println("Successfully placed bid.");
     }
     else {
-      System.out.println("Failed to place bid.");
+      System.out.println("Failed to place bid or could not authenticate Client");
     }
   }
 
@@ -147,21 +153,26 @@ public class Client {
     String token = authenticateClient(Integer.parseInt(args[1]), server); //generate token
 
     AuctionItem retrievedItem = server.getSpec(Integer.parseInt(args[1]), Integer.parseInt(args[2]), token);
+
+    if(retrievedItem == null){
+      System.out.println("Could not authenticate Client");
+    }
+
     System.out.println("Name: " + retrievedItem.name);
     System.out.println("Description: " + retrievedItem.description);
     System.out.println("Highest Bid: " + retrievedItem.highestBid);
   }
 
   public static void usage(){
-      System.out.println("Usage: java Client <command> <args>");
+      System.out.println("Usage: <command> <args>");
       System.out.println("Available commands: register, new, list, bid, close, getSpec");
       System.out.println("\nExample usage:");
-      System.out.println("register: java Client register <email>");
-      System.out.println("new: java Client new <userID> <name> \"<description>\" <reservePrice>");
-      System.out.println("list: java Client list <userID>");
-      System.out.println("bid: java Client bid <userID> <itemID> <bid>");
-      System.out.println("close: java Client close <userID> <itemID>");
-      System.out.println("getSpec: java Client getSpec <userID> <itemID>");
+      System.out.println("register <email>");
+      System.out.println("new <userID> <name> \"<description>\" <reservePrice>");
+      System.out.println("list <userID>");
+      System.out.println("bid <userID> <itemID> <bid>");
+      System.out.println("close <userID> <itemID>");
+      System.out.println("getSpec <userID> <itemID>");
   }
 
   public static void processCommand(Auction server, String[] args){
@@ -220,14 +231,13 @@ public class Client {
       serverPublicKey = keyFactory.generatePublic(keySpec);
 
       //loop to take in user input
-
       Scanner input = new Scanner(System.in);
       while(true){
-        System.out.println("Type 'usage' to see available commands");
-        System.out.println("Type 'exit' to exit the program");
+        System.out.println("\nType 'usage' to see available commands, type 'exit' to exit the program");
         System.out.println("Enter a command: ");
         String userInput = input.nextLine();
         String[] inputArgs = userInput.split(" ");
+        System.out.println("\n");
 
         if(inputArgs[0].equals("exit")){
           break;
