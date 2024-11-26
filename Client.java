@@ -137,7 +137,7 @@ public class Client {
 
     //Connect to the server
     try {
-      String name = "Auction";
+      String name = "FrontEnd";
       Registry registry = LocateRegistry.getRegistry("localhost");
       Auction server = (Auction) registry.lookup(name); // find the server and connect
 

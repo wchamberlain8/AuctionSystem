@@ -1,17 +1,11 @@
-import java.io.FileOutputStream;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Signature;
 import java.util.HashMap;
 import java.util.Random;
 
-public class AuctionServer implements Auction {
+public class Replica implements Auction {
 
     //Create and initialise hashmaps
     private HashMap<Integer, AuctionItem> itemsMap = new HashMap<>();
@@ -21,11 +15,14 @@ public class AuctionServer implements Auction {
 
     Random random = new Random();
 
-    public AuctionServer() throws RemoteException {
+    public Replica() throws RemoteException {
         super();
 
     }
 
+    public int getPrimaryReplicaID() throws RemoteException{
+        return 0;
+    }
 
     // Helper function to create a new AuctionItem since constructor not allowed
     public AuctionItem createItem(int itemID, String name, String description, int highestBid) {
@@ -66,7 +63,6 @@ public class AuctionServer implements Auction {
                                            // who created the auction
 
         // create new AuctionItem from AuctionSaleItem info
-
         AuctionItem newItem = createItem(itemID, item.name, item.description, 0);
         itemsMap.put(itemID, newItem); // place into hashmap, the itemID being the key for the AuctionItem, so we have
                                        // all items saved in one place
@@ -141,21 +137,25 @@ public class AuctionServer implements Auction {
         }
     }
 
-    public int getPrimaryReplicaID() throws RemoteException{
-        return 0;
-    }
 
     public static void main(String[] args) {
         try {
-            AuctionServer a1 = new AuctionServer(); // creating a server with the name 'Auction'
-            String name = "Auction";
+            if (args.length < 1) {
+                System.out.println("Usage: java Replica <replicaID>");
+                System.exit(0);
+            }
 
-            Auction stub = (Auction) UnicastRemoteObject.exportObject(a1, 0);
+            int replicaID = Integer.parseInt(args[0]);
+            
+            Replica replicaServer = new Replica(); // creating a server instance
+            String name = "Replica" + replicaID;
+
+            Auction stub = (Auction) UnicastRemoteObject.exportObject(replicaServer, 0);
 
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(name, stub);
 
-            System.out.println("Server ready");
+            System.out.println("Replica" + replicaID + " ready");
         } catch (Exception e) {
             System.err.println("Exception:");
             e.printStackTrace();
