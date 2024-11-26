@@ -18,115 +18,14 @@ public class AuctionServer implements Auction {
     private HashMap<Integer, String> usersMap = new HashMap<>();
     private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
     private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
-    private HashMap<Integer, PublicKey> userPKMap = new HashMap<>();
-    private HashMap<Integer, TokenInfo> userTokenMap = new HashMap<>();
 
     Random random = new Random();
-    private static PrivateKey serverPrivateKey;
 
     public AuctionServer() throws RemoteException {
         super();
 
     }
 
-    // Function to generate a KeyPair for cryptographic authentication later
-    private static void generateKeyPair() throws Exception {
-        try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA"); // set up the key generator
-            keyGen.initialize(2048);
-
-            KeyPair keyPair = keyGen.generateKeyPair();
-            PrivateKey serverPrivateKey = keyPair.getPrivate(); // generate and seperate the two keys
-            PublicKey serverPublicKey = keyPair.getPublic();
-
-            AuctionServer.serverPrivateKey = serverPrivateKey; //save private key securely to the server
-
-            FileOutputStream fileOut = new FileOutputStream("keys/server_public.key"); // save the public key (in bytes) to a file
-            fileOut.write(serverPublicKey.getEncoded());
-            fileOut.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public ChallengeInfo challenge(int userID, String clientChallenge) {
-        try {
-            Signature signature = Signature.getInstance("SHA256withRSA"); //set up the signature
-            signature.initSign(serverPrivateKey);
-            signature.update(clientChallenge.getBytes());
-            byte[] response = signature.sign(); //sign the client's challenge
-
-            ChallengeInfo challengeInfo = new ChallengeInfo();
-            challengeInfo.response = response;
-            challengeInfo.serverChallenge = "serverChallenge"; //create a challenge for the client
-
-            return challengeInfo;
-
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-        
-    }
-
-
-    @Override
-    public TokenInfo authenticate(int userID, byte[] signature) throws RemoteException {
-        try {
-            PublicKey clientPublicKey = userPKMap.get(userID); //get the client's public key from the hashmap
-
-            Signature verifyClientSig = Signature.getInstance("SHA256withRSA"); //set up the signature to verify the client's response
-            verifyClientSig.initVerify(clientPublicKey);
-            verifyClientSig.update("serverChallenge".getBytes()); //update the signature with the server's challenge (which is just the string "serverChallenge")
-            
-            if (verifyClientSig.verify(signature) == false) { //verify the client's response
-                System.out.println("Client's response could not be verified");
-                return null;
-            }
-
-            TokenInfo tokenInfo = new TokenInfo(); //create a new token
-            tokenInfo.token = "token" + userID; 
-            tokenInfo.expiryTime = System.currentTimeMillis() + 10000; //set the expiry time to 10 seconds (from current system time)
-
-            userTokenMap.put(userID, tokenInfo); //place the token in the hashmap, with the userID as the key
-                                                 //this will be overwrite the current token if the user authenticates again within 10 secs
-
-            return tokenInfo;
-
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public boolean validateToken(int userID, String token) throws Exception {
-    
-        try {
-            TokenInfo tokenInfo = userTokenMap.get(userID); //get the token from the hashmap
-
-            if (tokenInfo == null) {    //check token exists
-                System.out.println("Token does not exist");
-                return false;
-            }
-
-            if (tokenInfo.token.equals(token) && tokenInfo.expiryTime > System.currentTimeMillis()) { //check if the token is valid
-                return true;
-            } else {
-                System.out.println("Token is invalid or expired");
-                userTokenMap.remove(userID);
-                return false;
-            }
-
-
-        }
-        catch (Exception e) {
-            return false;
-        }
-    }
 
     // Helper function to create a new AuctionItem since constructor not allowed
     public AuctionItem createItem(int itemID, String name, String description, int highestBid) {
@@ -140,17 +39,7 @@ public class AuctionServer implements Auction {
     }
 
     @Override
-    public AuctionItem getSpec(int userID, int itemID, String token ) throws RemoteException {
-
-        try {
-            if(validateToken(userID, token) == false) { //check if the token is valid
-                System.out.println("Token is invalid or expired");
-                return null; //stop code if token is invalid
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    public AuctionItem getSpec(int itemID) throws RemoteException {
 
         if (itemsMap.isEmpty()) { // return null if the hashmap is empty
             return null;
@@ -162,26 +51,15 @@ public class AuctionServer implements Auction {
     }
 
     @Override
-    public int register(String email, PublicKey pkey) throws RemoteException {
+    public int register(String email) throws RemoteException {
 
         int userID = random.nextInt(100); // generate random userID
         usersMap.put(userID, email); // place into hashmap, userID being the key for each email, to access a user's email
-        userPKMap.put(userID, pkey); // place into hashmap, userID being the key for each PublicKey, to access a user's PublicKey
         return userID;
     }
 
     @Override
-    public int newAuction(int userID, AuctionSaleItem item, String token) throws RemoteException {
-
-        try {
-            if(validateToken(userID, token) == false) { //check if the token is valid
-                System.out.println("Token is invalid or expired");
-                return -1; //stop code if token is invalid
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    public int newAuction(int userID, AuctionSaleItem item) throws RemoteException {
 
         int itemID = random.nextInt(1000); // generate random itemID
         userAuctionsMap.put(userID, item); // place into hashmap, userID being the key for each AuctionSaleItem, to know
@@ -198,17 +76,7 @@ public class AuctionServer implements Auction {
     }
 
     @Override
-    public AuctionItem[] listItems(int userID, String token) throws RemoteException {
-        
-        try {
-            if(validateToken(userID, token) == false) { //check if the token is valid
-                System.out.println("Token is invalid or expired");
-                return null; //stop code if token is invalid
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    public AuctionItem[] listItems() throws RemoteException {
 
         AuctionItem[] array = itemsMap.values().toArray(new AuctionItem[0]); // turn the item hashmap into an array
         return array;
@@ -216,17 +84,7 @@ public class AuctionServer implements Auction {
     }
 
     @Override
-    public AuctionResult closeAuction(int userID, int itemID, String token) {
-
-        try {
-            if(validateToken(userID, token) == false) { //check if the token is valid
-                System.out.println("Token is invalid or expired");
-                return null; //stop code if token is invalid
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    public AuctionResult closeAuction(int userID, int itemID) {
 
         AuctionItem item = itemsMap.get(itemID); // Check if the item exists
         if (item == null) {
@@ -263,17 +121,7 @@ public class AuctionServer implements Auction {
     }
 
     @Override
-    public boolean bid(int userID, int itemID, int price, String token) throws RemoteException {
-
-        try {
-            if(validateToken(userID, token) == false) { //check if the token is valid
-                System.out.println("Token is invalid or expired");
-                return false; //stop code if token is invalid
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    public boolean bid(int userID, int itemID, int price) throws RemoteException {
 
         AuctionItem item = itemsMap.get(itemID); // Check that the item exists
         if (item == null) {
@@ -293,6 +141,10 @@ public class AuctionServer implements Auction {
         }
     }
 
+    public int getPrimaryReplicaID() throws RemoteException{
+        return 0;
+    }
+
     public static void main(String[] args) {
         try {
             AuctionServer a1 = new AuctionServer(); // creating a server with the name 'Auction'
@@ -302,8 +154,6 @@ public class AuctionServer implements Auction {
 
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(name, stub);
-
-            generateKeyPair(); // generate a new keyPair
 
             System.out.println("Server ready");
         } catch (Exception e) {
