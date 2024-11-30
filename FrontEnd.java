@@ -2,14 +2,20 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FrontEnd implements Auction{
 
-    private int primaryReplicaID = 1; //hard coded for now (default primary replica ID)
-    private int[] replicaIDs = {1, 2, 3}; //same here TODO: Change this
+    private int MAX_NUMBER_OF_REPLICAS = 10;
+    private int primaryReplicaID = -1;
+    private List<Integer> replicaIDs = new ArrayList<>();
 
     @Override
     public int register(String email) throws RemoteException {
+        System.out.println("LOOKING FOR REPLICAS");
+        lookForReplicas();
+        System.out.println("PRIMARY REPLICA IS ID OF: " );
         return connectToPrimaryReplica().register(email);
        
     }
@@ -51,13 +57,15 @@ public class FrontEnd implements Auction{
     }
 
     //Helper function to connect to the primary replica using the getPrimaryReplicaID method
-    public Auction connectToPrimaryReplica(){
+    public ReplicaInterface connectToPrimaryReplica(){
         
         try {
             Registry registry = LocateRegistry.getRegistry("localhost");
             
             int primaryReplicaID = getPrimaryReplicaID();
-            Auction primary = (Auction) registry.lookup("Replica" + primaryReplicaID);
+            ReplicaInterface primary = (ReplicaInterface) registry.lookup("Replica" + primaryReplicaID);
+            primary.setPrimaryReplicaID(primaryReplicaID);
+            primary.updateReplicaIDList(replicaIDs);
 
             return primary;
         } 
@@ -69,6 +77,33 @@ public class FrontEnd implements Auction{
     }
 
     //method to choose a primary replica?
+
+    private void lookForReplicas(){
+
+        for(int i =1; i <= MAX_NUMBER_OF_REPLICAS; i++){
+            
+            String name = "Replica" + i;
+
+            try {
+                Registry registry = LocateRegistry.getRegistry("localhost");
+                ReplicaInterface replica = (ReplicaInterface) registry.lookup(name);
+                
+                if(!replicaIDs.contains(i)){
+                    replicaIDs.add(i);
+                }
+
+                if(primaryReplicaID == -1){
+                    primaryReplicaID = i;
+                }
+
+            }
+            catch (Exception e) {
+                // TODO: handle exception
+            }
+
+        }
+
+    }
 
     public static void main(String[] args) {
         try {

@@ -2,10 +2,12 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 
-public class Replica implements Auction {
+public class Replica implements ReplicaInterface {
 
     //Create and initialise hashmaps
     private HashMap<Integer, AuctionItem> itemsMap = new HashMap<>();
@@ -13,15 +15,14 @@ public class Replica implements Auction {
     private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
     private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
 
+    private int primaryReplicaID;
+    private List<Integer> replicaIDs = new ArrayList<>();
+
     Random random = new Random();
 
     public Replica() throws RemoteException {
         super();
 
-    }
-
-    public int getPrimaryReplicaID() throws RemoteException{
-        return 0;
     }
 
     // Helper function to create a new AuctionItem since constructor not allowed
@@ -52,6 +53,7 @@ public class Replica implements Auction {
 
         int userID = random.nextInt(100); // generate random userID
         usersMap.put(userID, email); // place into hashmap, userID being the key for each email, to access a user's email
+        synchroniseReplicas();
         return userID;
     }
 
@@ -113,7 +115,6 @@ public class Replica implements Auction {
             System.out.println("UserID does not match the given AuctionItem's itemID");
             return null;
         }
-
     }
 
     @Override
@@ -136,7 +137,55 @@ public class Replica implements Auction {
             return false;
         }
     }
+    
+        @Override
+        public int getPrimaryReplicaID() throws RemoteException {
+            return primaryReplicaID;
+        }
 
+        @Override
+        public void setPrimaryReplicaID(int newID) throws RemoteException{
+            this.primaryReplicaID = newID;
+        }
+    
+        @Override
+        public void updateState(HashMap<Integer, AuctionItem> itemsMap, HashMap<Integer, String> usersMap, HashMap<Integer, AuctionSaleItem> userAuctionsMap, HashMap<Integer, Integer> highestBidderMap) throws RemoteException {
+            
+            this.itemsMap = itemsMap;
+            this.usersMap = usersMap;
+            this.userAuctionsMap = userAuctionsMap;
+            this.highestBidderMap = highestBidderMap;
+        }
+
+        @Override
+        public void updateReplicaIDList(List<Integer> replicaIDs){
+            this.replicaIDs = replicaIDs;
+        }
+
+        public void synchroniseReplicas(){
+            for(int replicaID : replicaIDs){
+
+                if(replicaID == primaryReplicaID){
+                    continue;
+                }
+                
+                String name = "Replica" + replicaID;
+
+                try {
+
+                    Registry registry = LocateRegistry.getRegistry("localhost");
+                    ReplicaInterface replica = (ReplicaInterface) registry.lookup(name);
+                    replica.updateState(itemsMap, usersMap, userAuctionsMap, highestBidderMap);
+                    System.out.println(name + " SUCCESSFULLY UPDATED STATE");
+                    
+                }
+                catch (Exception e) {
+                    System.err.println("Failed to connect to " + name);
+                }
+
+                
+            }
+        }
 
     public static void main(String[] args) {
         try {
@@ -150,7 +199,7 @@ public class Replica implements Auction {
             Replica replicaServer = new Replica(); // creating a server instance
             String name = "Replica" + replicaID;
 
-            Auction stub = (Auction) UnicastRemoteObject.exportObject(replicaServer, 0);
+            ReplicaInterface stub = (ReplicaInterface) UnicastRemoteObject.exportObject(replicaServer, 0);
 
             Registry registry = LocateRegistry.getRegistry();
             registry.rebind(name, stub);
