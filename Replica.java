@@ -15,6 +15,7 @@ public class Replica implements ReplicaInterface {
     private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
     private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
 
+    private static String replicaName;
     private int primaryReplicaID;
     private List<Integer> replicaIDs = new ArrayList<>();
 
@@ -23,6 +24,15 @@ public class Replica implements ReplicaInterface {
     public Replica() throws RemoteException {
         super();
 
+    }
+
+    public void shutdown(){
+        try {
+            Registry registry = LocateRegistry.getRegistry("localhost");
+            registry.unbind(replicaName);
+        } catch (Exception e) {
+
+        }
     }
 
     // Helper function to create a new AuctionItem since constructor not allowed
@@ -44,6 +54,7 @@ public class Replica implements ReplicaInterface {
         }
 
         AuctionItem item = itemsMap.get(itemID); // Get the AuctionItem from the hashmap with the relative itemID
+        synchroniseReplicas();
         return item;
 
     }
@@ -62,13 +73,14 @@ public class Replica implements ReplicaInterface {
 
         int itemID = random.nextInt(1000); // generate random itemID
         userAuctionsMap.put(userID, item); // place into hashmap, userID being the key for each AuctionSaleItem, to know
-                                           // who created the auction
+                                            // who created the auction
 
         // create new AuctionItem from AuctionSaleItem info
         AuctionItem newItem = createItem(itemID, item.name, item.description, 0);
         itemsMap.put(itemID, newItem); // place into hashmap, the itemID being the key for the AuctionItem, so we have
-                                       // all items saved in one place
+                                        // all items saved in one place
 
+        synchroniseReplicas();
         return itemID;
 
     }
@@ -77,6 +89,7 @@ public class Replica implements ReplicaInterface {
     public AuctionItem[] listItems() throws RemoteException {
 
         AuctionItem[] array = itemsMap.values().toArray(new AuctionItem[0]); // turn the item hashmap into an array
+        synchroniseReplicas();
         return array;
 
     }
@@ -105,6 +118,7 @@ public class Replica implements ReplicaInterface {
 
                 itemsMap.remove(itemID); // Remove the item from auction
 
+                synchroniseReplicas();
                 return result;
             } else {
                 System.out.println("Reserve price not met");
@@ -129,8 +143,9 @@ public class Replica implements ReplicaInterface {
         if (price > item.highestBid) { // Check that the amount offered is higher than the current bid
             item.highestBid = price; // Update highest bid
             highestBidderMap.put(item.itemID, userID); // place in hashmap, showing who the highest bidder (userID) is
-                                                       // for each given itemID, this overwrites the previous highest
-                                                       // bidder
+                                                        // for each given itemID, this overwrites the previous highest
+                                                        // bidder
+            synchroniseReplicas();
             return true;
         } else {
             System.out.println("Bid is not higher than the current highest bid");
@@ -198,6 +213,7 @@ public class Replica implements ReplicaInterface {
             
             Replica replicaServer = new Replica(); // creating a server instance
             String name = "Replica" + replicaID;
+            replicaName = name;
 
             ReplicaInterface stub = (ReplicaInterface) UnicastRemoteObject.exportObject(replicaServer, 0);
 
@@ -205,6 +221,9 @@ public class Replica implements ReplicaInterface {
             registry.rebind(name, stub);
 
             System.out.println("Replica" + replicaID + " ready");
+
+            Runtime.getRuntime().addShutdownHook(new Thread(replicaServer::shutdown));
+
         } catch (Exception e) {
             System.err.println("Exception:");
             e.printStackTrace();

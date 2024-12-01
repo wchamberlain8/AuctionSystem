@@ -7,45 +7,48 @@ import java.util.List;
 
 public class FrontEnd implements Auction{
 
-    private int MAX_NUMBER_OF_REPLICAS = 10;
-    private int primaryReplicaID = -1;
-    private List<Integer> replicaIDs = new ArrayList<>();
-
+    private static int MAX_NUMBER_OF_REPLICAS = 10;
+    private static int primaryReplicaID = -1;
+    private static List<Integer> replicaIDs = new ArrayList<>();
+    
     @Override
     public int register(String email) throws RemoteException {
-        System.out.println("LOOKING FOR REPLICAS");
         lookForReplicas();
-        System.out.println("PRIMARY REPLICA IS ID OF: " );
         return connectToPrimaryReplica().register(email);
-       
+        
     }
 
     @Override
     public AuctionItem getSpec(int itemID) throws RemoteException {
+        lookForReplicas();
         return connectToPrimaryReplica().getSpec(itemID);
         
     }
 
     @Override
     public int newAuction(int userID, AuctionSaleItem item) throws RemoteException {
+        lookForReplicas();
         return connectToPrimaryReplica().newAuction(userID, item);
-       
+        
     }
 
     @Override
     public AuctionItem[] listItems() throws RemoteException {
+        lookForReplicas();
         return connectToPrimaryReplica().listItems();
-      
+        
     }
 
     @Override
     public AuctionResult closeAuction(int userID, int itemID) throws RemoteException {
+        lookForReplicas();
         return connectToPrimaryReplica().closeAuction(userID, itemID);
-       
+        
     }
 
     @Override
     public boolean bid(int userID, int itemID, int price) throws RemoteException {
+        lookForReplicas();
         return connectToPrimaryReplica().bid(userID, itemID, price);
         
     }
@@ -53,7 +56,7 @@ public class FrontEnd implements Auction{
     @Override
     public int getPrimaryReplicaID() throws RemoteException {
         return primaryReplicaID;
-       
+        
     }
 
     //Helper function to connect to the primary replica using the getPrimaryReplicaID method
@@ -76,29 +79,53 @@ public class FrontEnd implements Auction{
         return null;
     }
 
-    //method to choose a primary replica?
-
-    private void lookForReplicas(){
-
-        for(int i =1; i <= MAX_NUMBER_OF_REPLICAS; i++){
+    private static void choosePrimaryReplica(){
+        if(!replicaIDs.isEmpty()){
+            primaryReplicaID = replicaIDs.get(0);
+            System.out.println("NEW PRIMARY CHOSEN = Replica" + primaryReplicaID);
+        }
+        else{
+            primaryReplicaID = -1;
+        }
+    }
+        
+    private static void lookForReplicas(){
             
+        for(int i =1; i <= MAX_NUMBER_OF_REPLICAS; i++){
+                
             String name = "Replica" + i;
-
+            System.out.println("ATTEMPTING LOOKUP FOR " + name);
+    
             try {
                 Registry registry = LocateRegistry.getRegistry("localhost");
                 ReplicaInterface replica = (ReplicaInterface) registry.lookup(name);
                 
                 if(!replicaIDs.contains(i)){
                     replicaIDs.add(i);
+                    System.out.println(name + " is live and added to the list");
                 }
 
                 if(primaryReplicaID == -1){
                     primaryReplicaID = i;
+                    System.out.println(name + " has been set as primary replica");
+                }
+
+                if(replicaIDs.contains(i)){
+                    System.out.println(name + " is live and already is in the list");
                 }
 
             }
             catch (Exception e) {
-                // TODO: handle exception
+
+                if(replicaIDs.contains(i)){
+                    replicaIDs.remove(Integer.valueOf(i));
+                    System.out.println(name + " has been removed from the list of replicas");
+                }
+
+                if(primaryReplicaID == i){
+                    System.out.println("Primary replica has been killed, choosing a new one...");
+                    choosePrimaryReplica();
+                }
             }
 
         }
@@ -116,7 +143,9 @@ public class FrontEnd implements Auction{
             registry.rebind(name, stub);
 
             System.out.println("FrontEnd server ready");
-        } catch (Exception e) {
+            lookForReplicas();
+        }
+        catch (Exception e) {
             System.err.println("Exception:");
             e.printStackTrace();
         }
