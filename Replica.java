@@ -26,6 +26,7 @@ public class Replica implements ReplicaInterface {
 
     }
 
+    // Method to shutdown the server (as CTRL+C wasn't properly stopping it)
     public void shutdown(){
         try {
             Registry registry = LocateRegistry.getRegistry("localhost");
@@ -163,6 +164,7 @@ public class Replica implements ReplicaInterface {
             this.primaryReplicaID = newID;
         }
     
+        //Function to update the state of the replica
         @Override
         public void updateState(HashMap<Integer, AuctionItem> itemsMap, HashMap<Integer, String> usersMap, HashMap<Integer, AuctionSaleItem> userAuctionsMap, HashMap<Integer, Integer> highestBidderMap) throws RemoteException {
             
@@ -177,10 +179,11 @@ public class Replica implements ReplicaInterface {
             this.replicaIDs = replicaIDs;
         }
 
+        //Function to synchronise the state of the replicas, to be used by the primary replica after any changes in state
         public void synchroniseReplicas(){
-            for(int replicaID : replicaIDs){
+            for(int replicaID : replicaIDs){ //for each replica in the list of current, live replicas
 
-                if(replicaID == primaryReplicaID){
+                if(replicaID == primaryReplicaID){ //skip the primary replica
                     continue;
                 }
                 
@@ -189,13 +192,13 @@ public class Replica implements ReplicaInterface {
                 try {
 
                     Registry registry = LocateRegistry.getRegistry("localhost");
-                    ReplicaInterface replica = (ReplicaInterface) registry.lookup(name);
-                    replica.updateState(itemsMap, usersMap, userAuctionsMap, highestBidderMap);
-                    System.out.println(name + " SUCCESSFULLY UPDATED STATE");
+                    ReplicaInterface replica = (ReplicaInterface) registry.lookup(name); //connect to the replica
+                    replica.updateState(itemsMap, usersMap, userAuctionsMap, highestBidderMap); //send the updated state to the replica
+                    //System.out.println(name + " SUCCESSFULLY UPDATED STATE");
                     
                 }
                 catch (Exception e) {
-                    System.err.println("Failed to connect to " + name);
+                    System.err.println("Failed to update the state of " + name);
                 }
 
                 
@@ -222,7 +225,7 @@ public class Replica implements ReplicaInterface {
 
             System.out.println("Replica" + replicaID + " ready");
 
-            Runtime.getRuntime().addShutdownHook(new Thread(replicaServer::shutdown));
+            Runtime.getRuntime().addShutdownHook(new Thread(replicaServer::shutdown)); // add shutdown hook to stop the server
 
         } catch (Exception e) {
             System.err.println("Exception:");
