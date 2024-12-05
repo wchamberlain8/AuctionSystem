@@ -213,12 +213,10 @@ public class Replica implements ReplicaInterface {
 
             for (String name : names) {
                 if (name.startsWith("Replica")) { 
-                    System.out.println("REPLICA FOUND IN REGISTRY: " + name);
                     
                     if(name.equals(replicaName)){ //skip the current replica
                         long replicaCount = java.util.Arrays.stream(names).filter(n -> n.startsWith("Replica")).count();
                         if(replicaCount == 1){
-                            System.out.println("This is the only live Replica, it will be set as primary.");
                             primaryReplicaID = replicaID;
                             return;
                         }

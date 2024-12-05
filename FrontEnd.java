@@ -67,7 +67,6 @@ public class FrontEnd implements Auction{
                 return primary;
             } 
             catch (Exception e) {
-                System.err.println("Problem connecting to the primary replica");
                 updateLiveReplicas();
                 choosePrimaryReplica();
             }
@@ -123,8 +122,6 @@ public class FrontEnd implements Auction{
 
             System.out.println("FrontEnd server ready");
             updateLiveReplicas(); //check for replicas when the server starts
-            System.out.println(replicaIDs);
-            System.out.println(primaryReplicaID);
         }
         catch (Exception e) {
             System.err.println("Exception:");
