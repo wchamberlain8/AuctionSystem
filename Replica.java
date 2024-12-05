@@ -154,56 +154,97 @@ public class Replica implements ReplicaInterface {
         }
     }
     
-        @Override
-        public int getPrimaryReplicaID() throws RemoteException {
-            return primaryReplicaID;
-        }
+    @Override
+    public int getPrimaryReplicaID() throws RemoteException {
+        return primaryReplicaID;
+    }
 
-        @Override
-        public void setPrimaryReplicaID(int newID) throws RemoteException{
-            this.primaryReplicaID = newID;
-        }
+    @Override
+    public void setPrimaryReplicaID(int newID) throws RemoteException{
+        this.primaryReplicaID = newID;
+    }
     
-        //Function to update the state of the replica
-        @Override
-        public void updateState(HashMap<Integer, AuctionItem> itemsMap, HashMap<Integer, String> usersMap, HashMap<Integer, AuctionSaleItem> userAuctionsMap, HashMap<Integer, Integer> highestBidderMap) throws RemoteException {
+    //Function to update the state of the replica
+    @Override
+    public void updateState(HashMap<Integer, AuctionItem> itemsMap, HashMap<Integer, String> usersMap, HashMap<Integer, AuctionSaleItem> userAuctionsMap, HashMap<Integer, Integer> highestBidderMap) throws RemoteException {
+        
+        this.itemsMap = itemsMap;
+        this.usersMap = usersMap;
+        this.userAuctionsMap = userAuctionsMap;
+        this.highestBidderMap = highestBidderMap;
+    }
+
+    @Override
+    public void updateReplicaIDList(List<Integer> replicaIDs){
+        this.replicaIDs = replicaIDs;
+    }
+
+    //Function to synchronise the state of the replicas, to be used by the primary replica after any changes in state
+    public void synchroniseReplicas(){
+        for(int replicaID : replicaIDs){ //for each replica in the list of current, live replicas
+
+            if(replicaID == primaryReplicaID){ //skip the primary replica
+                continue;
+            }
             
-            this.itemsMap = itemsMap;
-            this.usersMap = usersMap;
-            this.userAuctionsMap = userAuctionsMap;
-            this.highestBidderMap = highestBidderMap;
-        }
+            String name = "Replica" + replicaID;
 
-        @Override
-        public void updateReplicaIDList(List<Integer> replicaIDs){
-            this.replicaIDs = replicaIDs;
-        }
+            try {
 
-        //Function to synchronise the state of the replicas, to be used by the primary replica after any changes in state
-        public void synchroniseReplicas(){
-            for(int replicaID : replicaIDs){ //for each replica in the list of current, live replicas
-
-                if(replicaID == primaryReplicaID){ //skip the primary replica
-                    continue;
-                }
-                
-                String name = "Replica" + replicaID;
-
-                try {
-
-                    Registry registry = LocateRegistry.getRegistry("localhost");
-                    ReplicaInterface replica = (ReplicaInterface) registry.lookup(name); //connect to the replica
-                    replica.updateState(itemsMap, usersMap, userAuctionsMap, highestBidderMap); //send the updated state to the replica
-                    //System.out.println(name + " SUCCESSFULLY UPDATED STATE");
-                    
-                }
-                catch (Exception e) {
-                    System.err.println("Failed to update the state of " + name);
-                }
-
+                Registry registry = LocateRegistry.getRegistry("localhost");
+                ReplicaInterface replica = (ReplicaInterface) registry.lookup(name); //connect to the replica
+                replica.updateState(itemsMap, usersMap, userAuctionsMap, highestBidderMap); //send the updated state to the replica
+                //System.out.println(name + " SUCCESSFULLY UPDATED STATE");
                 
             }
+            catch (Exception e) {
+                System.err.println("Failed to update the state of " + name);
+            }
+
+            
         }
+    }
+
+    public void newReplicaSetup(){
+        try{
+            Registry registry = LocateRegistry.getRegistry("localhost");
+            String[] names = registry.list();
+
+            for (String name : names) {
+                if (name.startsWith("Replica")) { 
+                    
+                    ReplicaInterface replica = (ReplicaInterface) registry.lookup(name); //connect to any replica temporarily
+                    int primaryReplicaID = replica.getPrimaryReplicaID(); //get the primary replica ID
+
+                    if(primaryReplicaID != -1){
+                        ReplicaInterface primaryReplica = (ReplicaInterface) registry.lookup("Replica" + primaryReplicaID); //connect to primary replica
+                        primaryReplica.syncNewReplica(replicaName); //sync the new replica with the primary replica's state
+                        return;
+                    }
+
+                }
+            }
+            System.err.println("No primary replica found");
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    //Function to synchronise the state of a new replica with the primary replica
+    @Override
+    public void syncNewReplica(String name){
+        try {
+            Registry registry = LocateRegistry.getRegistry("localhost");
+            ReplicaInterface replica = (ReplicaInterface) registry.lookup(name); //connect to the new replica
+            replica.updateState(itemsMap, usersMap, userAuctionsMap, highestBidderMap); //send the updated state to the new replica
+            //System.out.println(name + " SUCCESSFULLY UPDATED STATE");
+        }
+        catch (Exception e) {
+            System.err.println("Failed to update the state of " + name);
+        }
+    }
+    
 
     public static void main(String[] args) {
         try {
@@ -224,6 +265,8 @@ public class Replica implements ReplicaInterface {
             registry.rebind(name, stub);
 
             System.out.println("Replica" + replicaID + " ready");
+
+            replicaServer.newReplicaSetup(); //sync the new replica with current state of the primary replica
 
             Runtime.getRuntime().addShutdownHook(new Thread(replicaServer::shutdown)); // add shutdown hook to stop the server
 

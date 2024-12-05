@@ -17,5 +17,6 @@ public interface ReplicaInterface extends Remote{
     public void updateState(HashMap<Integer, AuctionItem> itemsMap, HashMap<Integer, String> usersMap, HashMap<Integer, AuctionSaleItem> userAuctionsMap, HashMap<Integer, Integer> highestBidderMap) throws RemoteException;
     public void setPrimaryReplicaID(int newID) throws RemoteException;
     public void updateReplicaIDList(List<Integer> replicaIDs) throws RemoteException;
+    public void syncNewReplica(String name) throws RemoteException;
     
 }
