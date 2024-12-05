@@ -55,7 +55,7 @@ public class FrontEnd implements Auction{
 
     //Helper function to connect to the primary replica using the getPrimaryReplicaID method
     public ReplicaInterface connectToPrimaryReplica(){
-        while(primaryReplicaID != 1){
+        while(true){
             try {
                 Registry registry = LocateRegistry.getRegistry("localhost");
                 
@@ -71,8 +71,10 @@ public class FrontEnd implements Auction{
                 updateLiveReplicas();
                 choosePrimaryReplica();
             }
+            if(primaryReplicaID == -1){
+                break;
+            }
         }
-        System.err.println("No replicas available");
         return null;
     }
 
@@ -121,6 +123,8 @@ public class FrontEnd implements Auction{
 
             System.out.println("FrontEnd server ready");
             updateLiveReplicas(); //check for replicas when the server starts
+            System.out.println(replicaIDs);
+            System.out.println(primaryReplicaID);
         }
         catch (Exception e) {
             System.err.println("Exception:");

@@ -15,6 +15,7 @@ public class Replica implements ReplicaInterface {
     private HashMap<Integer, AuctionSaleItem> userAuctionsMap = new HashMap<>();
     private HashMap<Integer, Integer> highestBidderMap = new HashMap<>();
 
+    private static int replicaID;
     private static String replicaName;
     private int primaryReplicaID;
     private List<Integer> replicaIDs = new ArrayList<>();
@@ -212,7 +213,18 @@ public class Replica implements ReplicaInterface {
 
             for (String name : names) {
                 if (name.startsWith("Replica")) { 
+                    System.out.println("REPLICA FOUND IN REGISTRY: " + name);
                     
+                    if(name.equals(replicaName)){ //skip the current replica
+                        long replicaCount = java.util.Arrays.stream(names).filter(n -> n.startsWith("Replica")).count();
+                        if(replicaCount == 1){
+                            System.out.println("This is the only live Replica, it will be set as primary.");
+                            primaryReplicaID = replicaID;
+                            return;
+                        }
+                        continue;
+                    }
+
                     ReplicaInterface replica = (ReplicaInterface) registry.lookup(name); //connect to any replica temporarily
                     int primaryReplicaID = replica.getPrimaryReplicaID(); //get the primary replica ID
 
@@ -253,7 +265,7 @@ public class Replica implements ReplicaInterface {
                 System.exit(0);
             }
 
-            int replicaID = Integer.parseInt(args[0]);
+            replicaID = Integer.parseInt(args[0]);
             
             Replica replicaServer = new Replica(); // creating a server instance
             String name = "Replica" + replicaID;
